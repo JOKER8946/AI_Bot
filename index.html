@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chatbot Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar, .modal-body { scrollbar-width: thin; scrollbar-color: #94a3b8 #e2e8f0; }
+        .sidebar::-webkit-scrollbar, .modal-body::-webkit-scrollbar { width: 6px; }
+        .sidebar::-webkit-scrollbar-track, .modal-body::-webkit-scrollbar-track { background: #e2e8f0; }
+        .sidebar::-webkit-scrollbar-thumb, .modal-body::-webkit-scrollbar-thumb { background-color: #94a3b8; border-radius: 10px; }
+        #chat-container::-webkit-scrollbar { width: 8px; }
+        #chat-container::-webkit-scrollbar-track { background: #f1f5f9; }
+        #chat-container::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+        .user-message, .bot-message { animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .dot-flashing { position: relative; width: 8px; height: 8px; border-radius: 5px; background-color: #475569; color: #475569; animation: dotFlashing 1s infinite linear alternate; animation-delay: .5s; }
+        .dot-flashing::before, .dot-flashing::after { content: ''; display: inline-block; position: absolute; top: 0; }
+        .dot-flashing::before { left: -12px; width: 8px; height: 8px; border-radius: 5px; background-color: #475569; color: #475569; animation: dotFlashing 1s infinite alternate; animation-delay: 0s; }
+        .dot-flashing::after { left: 12px; width: 8px; height: 8px; border-radius: 5px; background-color: #475569; color: #475569; animation: dotFlashing 1s infinite alternate; animation-delay: 1s; }
+        @keyframes dotFlashing { 0% { background-color: #475569; } 50%, 100% { background-color: #cbd5e1; } }
+    </style>
+</head>
+<body class="bg-slate-100 flex h-screen antialiased text-slate-800">
+
+    <!-- Sidebar -->
+    <aside class="bg-white w-80 flex flex-col p-4 border-r border-slate-200 flex-shrink-0">
+        <div class="flex items-center space-x-3 mb-6 px-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-600"><path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.5A4.5 4.5 0 0 0 18 5h-1.26a8.38 8.38 0 0 1-3.66-1.42 8.38 8.38 0 0 1-3.66 1.42H8a4.5 4.5 0 0 0-3.5 9.44C4.5 12.5 5 13 5.5 14c.5 1 1 1.5 1.5 2 .5.5 1 1 1.5 1.5.5.5 1 .5 1.5.5.5 0 1-.5 1.5-1s.5-1 1-1.5c.5-.5 1-1 1.5-1.5.5-1 1-1.5 1.5-2 .5-1 .5-1.5.5-2.5a4.5 4.5 0 0 0-3.5-4.44h-1.26a8.38 8.38 0 0 1-3.66-1.42 8.38 8.38 0 0 1-3.66 1.42H8a4.5 4.5 0 0 0-3.5 9.44c0 4.5 3 12.5 6 12.5 1.25 0 2.5-1.06 4-1.06Z"/><path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.5A4.5 4.5 0 0 0 18 5h-1.26a8.38 8.38 0 0 1-3.66-1.42 8.38 8.38 0 0 1-3.66 1.42H8a4.5 4.5 0 0 0-3.5 9.44C4.5 12.5 5 13 5.5 14c.5 1 1 1.5 1.5 2 .5.5 1 1 1.5 1.5.5.5 1 .5 1.5.5.5 0 1-.5 1.5-1s.5-1 1-1.5c.5-.5 1-1 1.5-1.5.5-1 1-1.5 1.5-2 .5-1 .5-1.5.5-2.5a4.5 4.5 0 0 0-3.5-4.44h-1.26a8.38 8.38 0 0 1-3.66-1.42 8.38 8.38 0 0 1-3.66 1.42H8a4.5 4.5 0 0 0-3.5 9.44c0 4.5 3 12.5 6 12.5 1.25 0 2.5-1.06 4-1.06Z"/></svg>
+            <h1 class="text-xl font-bold text-slate-800">AI Bot Platform</h1>
+        </div>
+
+        <div class="px-2">
+            <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Pre-made Assistants</h2>
+            <ul id="default-bots-list" class="space-y-1"></ul>
+        </div>
+
+        <div class="flex-grow flex flex-col mt-6">
+            <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-2">My Bots</h2>
+            <div class="flex-grow overflow-y-auto pr-2 sidebar">
+                 <ul id="my-bots-list" class="space-y-1 px-2"></ul>
+            </div>
+            <button id="create-new-bot-btn" class="mt-4 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                <span>Create with Persona</span>
+            </button>
+            <button id="create-simple-bot-btn" class="mt-2 w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                <span>Create with Prompt</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Chat Area -->
+    <div class="flex-1 flex flex-col h-full bg-slate-200">
+        <header class="bg-white p-4 border-b border-slate-300 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                 <div id="header-icon" class="text-2xl"></div>
+                 <h2 id="header-title" class="text-lg font-semibold text-slate-800"></h2>
+            </div>
+        </header>
+
+        <div id="chat-container" class="flex-1 p-6 overflow-y-auto">
+            <div class="space-y-6"></div>
+        </div>
+
+        <div class="p-6 bg-white border-t border-slate-300">
+            <div class="flex items-center space-x-4">
+                <input type="text" id="userInput" class="flex-1 w-full px-4 py-2 bg-slate-100 border border-slate-300 rounded-full text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Type your message..." autocomplete="off">
+                <button id="sendMessage" class="bg-indigo-600 text-white rounded-full p-3 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Create Bot Modal (Detailed Persona) -->
+    <div id="create-bot-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg w-full max-w-2xl shadow-xl m-4 flex flex-col" style="max-height: 90vh;">
+            <div class="p-6 border-b">
+                <h2 class="text-2xl font-bold text-slate-800">Create a New Bot Persona</h2>
+                <p class="text-slate-500">Construct a detailed character for the AI to embody.</p>
+            </div>
+            <div class="p-6 overflow-y-auto modal-body">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                    <!-- Column 1 -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Name</label>
+                        <input type="text" id="new-bot-name" placeholder="e.g., Alex Carter" class="w-full bg-slate-100 border-slate-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Age</label>
+                        <input type="number" id="new-bot-age" placeholder="e.g., 35" class="w-full bg-slate-100 border-slate-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Occupation</label>
+                        <input type="text" id="new-bot-occupation" placeholder="e.g., Architect" class="w-full bg-slate-100 border-slate-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Educational Background</label>
+                        <input type="text" id="new-bot-education" placeholder="e.g., Masters in Fine Arts" class="w-full bg-slate-100 border-slate-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                         <label class="block text-sm font-medium text-slate-700 mb-1">Health Condition</label>
+                        <select id="new-bot-health" class="w-full bg-slate-100 border-slate-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option>Excellent</option>
+                            <option selected>Good</option>
+                            <option>Moderate</option>
+                            <option>Poor</option>
+                            <option>Bad</option>
+                        </select>
+                    </div>
+                     <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Personality</label>
+                        <select id="new-bot-personality" class="w-full bg-slate-100 border-slate-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"></select>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Current Mood</label>
+                        <div class="flex gap-4">
+                            <select id="new-bot-mood" class="w-full bg-slate-100 border-slate-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"></select>
+                            <input type="text" id="new-bot-mood-other" placeholder="Enter custom mood" class="w-full bg-slate-100 border-slate-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 hidden">
+                        </div>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Typical Behaviour</label>
+                        <select id="new-bot-behaviour" class="w-full bg-slate-100 border-slate-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"></select>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6 bg-slate-50 border-t flex justify-end space-x-4">
+                <button id="cancel-create-bot" class="px-4 py-2 rounded-md bg-slate-200 hover:bg-slate-300 font-semibold text-slate-700 transition">Cancel</button>
+                <button id="save-new-bot" class="px-5 py-2 rounded-md bg-indigo-600 hover:bg-indigo-700 font-semibold text-white transition">Save Bot Persona</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Simple Bot Modal -->
+    <div id="create-simple-bot-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg p-8 w-full max-w-lg shadow-xl m-4">
+            <h2 class="text-2xl font-bold mb-2 text-slate-800">Create a Bot with Instructions</h2>
+            <p class="text-slate-500 mb-6">Just give your bot a name and tell it how to behave in a single paragraph.</p>
+            <div class="space-y-4">
+                <input type="text" id="simple-bot-name" placeholder="Bot Name (e.g., 'Meeting Summarizer')" class="w-full bg-slate-100 border border-slate-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <textarea id="simple-bot-prompt" rows="5" placeholder="Instructions (e.g., 'You are an AI that summarizes meeting transcripts. Take the user's text and provide a bulleted list of key points and action items.')" class="w-full bg-slate-100 border border-slate-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+            </div>
+            <div class="mt-6 flex justify-end space-x-4">
+                <button id="cancel-simple-bot" class="px-4 py-2 rounded-md bg-slate-200 hover:bg-slate-300 font-semibold text-slate-700 transition">Cancel</button>
+                <button id="save-simple-bot" class="px-5 py-2 rounded-md bg-indigo-600 hover:bg-indigo-700 font-semibold text-white transition">Save Bot</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const defaultBotsList = document.getElementById('default-bots-list');
+        const myBotsList = document.getElementById('my-bots-list');
+        const createNewBotBtn = document.getElementById('create-new-bot-btn');
+        const createBotModal = document.getElementById('create-bot-modal');
+        const cancelCreateBotBtn = document.getElementById('cancel-create-bot');
+        const saveNewBotBtn = document.getElementById('save-new-bot');
+        const chatHeaderTitle = document.getElementById('header-title');
+        const chatHeaderIcon = document.getElementById('header-icon');
+        const chatContainer = document.getElementById('chat-container');
+        const userInput = document.getElementById('userInput');
+        const sendMessageBtn = document.getElementById('sendMessage');
+        
+        // Simple Bot Modal Elements
+        const createSimpleBotBtn = document.getElementById('create-simple-bot-btn');
+        const createSimpleBotModal = document.getElementById('create-simple-bot-modal');
+        const cancelSimpleBotBtn = document.getElementById('cancel-simple-bot');
+        const saveSimpleBotBtn = document.getElementById('save-simple-bot');
+        const simpleBotNameInput = document.getElementById('simple-bot-name');
+        const simpleBotPromptInput = document.getElementById('simple-bot-prompt');
+        
+        // Detailed Persona Modal Form Inputs
+        const botForm = {
+            name: document.getElementById('new-bot-name'),
+            age: document.getElementById('new-bot-age'),
+            occupation: document.getElementById('new-bot-occupation'),
+            education: document.getElementById('new-bot-education'),
+            health: document.getElementById('new-bot-health'),
+            personality: document.getElementById('new-bot-personality'),
+            mood: document.getElementById('new-bot-mood'),
+            moodOther: document.getElementById('new-bot-mood-other'),
+            behaviour: document.getElementById('new-bot-behaviour'),
+        };
+
+        // API Configuration
+        const apiKey = "AIzaSyAHvLD5pPfxCzcDOVnaR70YeWN_tgNHX4g";
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+        // Data & State
+        let myBots = [];
+        let activeBotId = 'trip_planner';
+        let chatHistory = [];
+
+        const defaultBots = {
+            'trip_planner': { name: 'Trip Planner', icon: '✈️', prompt: 'You are a world-class travel agent AI...' },
+            'brainstorm_buddy': { name: 'Brainstorm Buddy', icon: '💡', prompt: 'You are a creative brainstorming partner...' },
+            'life_advisor': { name: 'Life Advisor', icon: '🧘', prompt: 'You are a wise and empathetic life advisor...' },
+            'story_writer': { name: 'Story Writer', icon: '✍️', prompt: 'You are a collaborative storyteller...' },
+            'language_tutor': { name: 'Language Tutor', icon: '🌍', prompt: 'You are a friendly language tutor...' },
+            'decision_maker': { name: 'Decision Maker', icon: '⚖️', prompt: 'You are a logical decision-making assistant...' }
+        };
+
+        const personaOptions = {
+            moods: ['Happy', 'Excited', 'Cheerful', 'Relaxed', 'Playful', 'Hopeful', 'Grateful', 'Energetic', 'Confident', 'Calm', 'Thoughtful', 'Curious', 'Daydreamy', 'Indifferent', 'Neutral', 'Focused', 'Content', 'Peaceful', 'Nostalgic', 'Restless', 'Sad', 'Lonely', 'Anxious', 'Angry', 'Stressed', 'Bored', 'Frustrated', 'Overwhelmed', 'Tired', 'Irritated', 'Optimistic', 'Pessimistic', 'Inspired', 'Motivated', 'Proud', 'Determined', 'Ambitious', 'Passionate', 'Loved', 'Caring', 'Jealous', 'Insecure', 'Guilty', 'Ashamed', 'Regretful', 'Embarrassed', 'Awkward', 'Confused', 'Lost', 'Vulnerable', 'Surprised', 'Shocked', 'Startled', 'Curious', 'Intrigued', 'Suspicious', 'Skeptical', 'Doubtful', 'Trusting', 'Chill', 'Lazy', 'Sleepy', 'Hungry', 'Satisfied', 'Mischievous', 'Flirty', 'Romantic', 'Empathetic', 'Compassionate', 'Helpful', 'Protective', 'Friendly', 'Social', 'Isolated', 'Abandoned', 'Empty', 'Overjoyed', 'Blissful', 'Euphoric', 'Adventurous', 'Brave', 'Bold', 'Strong', 'Weak', 'Helpless', 'Fearful', 'Paranoid', 'Worried', 'Nervous', 'Shy', 'Timid', 'Reserved', 'Defensive', 'Aggressive', 'Resentful', 'Creative', 'Artistic', 'Expressive', 'Inventive', 'Open-minded', 'Flexible', 'Stubborn', 'Rigid', 'Other'],
+            personalities: ['Friendly', 'Kind', 'Honest', 'Loyal', 'Responsible', 'Reliable', 'Confident', 'Humble', 'Patient', 'Generous', 'Creative', 'Imaginative', 'Innovative', 'Curious', 'Adventurous', 'Brave', 'Bold', 'Energetic', 'Ambitious', 'Determined', 'Optimistic', 'Cheerful', 'Playful', 'Charming', 'Warm', 'Compassionate', 'Empathetic', 'Caring', 'Supportive', 'Helpful', 'Polite', 'Respectful', 'Disciplined', 'Organized', 'Hardworking', 'Focused', 'Practical', 'Logical', 'Rational', 'Wise', 'Open-minded', 'Flexible', 'Adaptable', 'Independent', 'Assertive', 'Self-aware', 'Resilient', 'Strong-willed', 'Perseverant', 'Motivated', 'Calm', 'Peaceful', 'Relaxed', 'Easygoing', 'Humorous', 'Witty', 'Talkative', 'Social', 'Outgoing', 'Expressive', 'Quiet', 'Introverted', 'Reserved', 'Thoughtful', 'Observant', 'Analytical', 'Detail-oriented', 'Strategic', 'Skeptical', 'Critical', 'Stubborn', 'Strict', 'Serious', 'Perfectionist', 'Competitive', 'Ambiguous', 'Neutral', 'Nonchalant', 'Detached', 'Mysterious', 'Impulsive', 'Moody', 'Sensitive', 'Emotional', 'Shy', 'Timid', 'Insecure', 'Vulnerable', 'Hesitant', 'Awkward', 'Aggressive', 'Arrogant', 'Rude', 'Selfish', 'Greedy', 'Lazy', 'Careless', 'Irresponsible', 'Distrustful', 'Manipulative', 'Envious', 'Jealous', 'Possessive', 'Dominant', 'Controlling', 'Harsh', 'Blunt', 'Cynical', 'Pessimistic', 'Overthinking'],
+            behaviours: ['Helping', 'Sharing', 'Listening', 'Encouraging', 'Supporting', 'Cooperating', 'Smiling', 'Complimenting', 'Respecting', 'Greeting', 'Apologizing', 'Thanking', 'Volunteering', 'Teaching', 'Mentoring', 'Protecting', 'Guiding', 'Problem-solving', 'Negotiating', 'Compromising', 'Organizing', 'Planning', 'Leading', 'Motivating', 'Inspiring', 'Caring', 'Comforting', 'Nurturing', 'Appreciating', 'Encouraging growth', 'Walking', 'Talking', 'Eating', 'Drinking', 'Sleeping', 'Reading', 'Writing', 'Studying', 'Observing', 'Waiting', 'Thinking', 'Daydreaming', 'Exploring', 'Asking questions', 'Watching', 'Playing', 'Learning', 'Practicing', 'Browsing', 'Shopping', 'Working', 'Repeating habits', 'Following rules', 'Adapting', 'Wandering', 'Sitting quietly', 'Expressing curiosity', 'Taking notes', 'Experimenting', 'Lying', 'Cheating', 'Stealing', 'Interrupting', 'Ignoring', 'Avoiding', 'Complaining', 'Shouting', 'Arguing', 'Fighting', 'Procrastinating', 'Overeating', 'Overthinking', 'Gossiping', 'Manipulating', 'Bullying', 'Blaming', 'Criticizing harshly', 'Disobeying', 'Destroying', 'Being rude', 'Being selfish', 'Withdrawing', 'Isolating', 'Breaking promises', 'Laziness', 'Impulsiveness', 'Distrusting', 'Overreacting', 'Addictive behavior']
+        };
+
+        // --- Core Functions ---
+        
+        const populateSelect = (selectElement, options) => {
+            options.forEach(option => {
+                const opt = document.createElement('option');
+                opt.value = option;
+                opt.textContent = option;
+                selectElement.appendChild(opt);
+            });
+        };
+
+        const renderSidebar = () => {
+            defaultBotsList.innerHTML = '';
+            for (const id in defaultBots) {
+                const bot = defaultBots[id];
+                const li = document.createElement('li');
+                li.innerHTML = `<a href="#" data-id="${id}" class="bot-link flex items-center p-2 rounded-lg space-x-3 transition ${id === activeBotId ? 'bg-indigo-100 text-indigo-700 font-semibold' : 'hover:bg-slate-100 text-slate-600'}"><span class="text-xl">${bot.icon}</span><span class="text-sm">${bot.name}</span></a>`;
+                defaultBotsList.appendChild(li);
+            }
+
+            myBotsList.innerHTML = '';
+            myBots.forEach(bot => {
+                const li = document.createElement('li');
+                li.innerHTML = `<a href="#" data-id="${bot.id}" class="bot-link flex items-center p-2 rounded-lg space-x-3 transition ${bot.id === activeBotId ? 'bg-indigo-100 text-indigo-700 font-semibold' : 'hover:bg-slate-100 text-slate-600'}"><span class="text-xl">🤖</span><span class="text-sm flex-grow truncate">${bot.name}</span><button class="delete-bot-btn text-slate-400 hover:text-red-500 flex-shrink-0 opacity-0 group-hover:opacity-100 transition" data-id="${bot.id}"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button></a>`;
+                li.classList.add('group');
+                myBotsList.appendChild(li);
+            });
+        };
+        
+        const switchBot = (botId) => {
+            saveChatHistory();
+            activeBotId = botId;
+            const bot = defaultBots[botId] || myBots.find(b => b.id === botId);
+            if (!bot) {
+                activeBotId = Object.keys(defaultBots)[0];
+                return switchBot(activeBotId);
+            }
+            chatHeaderTitle.textContent = bot.name;
+            chatHeaderIcon.textContent = bot.icon || '🤖';
+            chatContainer.querySelector('.space-y-6').innerHTML = '';
+            loadChatHistory();
+            renderSidebar();
+        };
+
+        const addMessageToUI = (sender, message) => {
+            const messageWrapper = document.createElement('div');
+            const isUser = sender === 'user';
+            messageWrapper.innerHTML = isUser ? `<div class="flex items-start justify-end gap-3 user-message"><div class="bg-indigo-600 text-white p-4 rounded-l-lg rounded-br-lg max-w-lg shadow"><p class="text-sm">${message}</p></div><div class="flex-shrink-0 h-10 w-10 rounded-full bg-slate-500 flex items-center justify-center text-white font-bold">You</div></div>` : `<div class="flex items-start gap-3 bot-message"><div class="flex-shrink-0 h-10 w-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold">A</div><div class="bg-white p-4 rounded-r-lg rounded-bl-lg max-w-lg shadow"><p class="text-sm">${message}</p></div></div>`;
+            chatContainer.querySelector('.space-y-6').appendChild(messageWrapper);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        };
+
+        const showLoadingIndicator = () => {
+            const loadingIndicator = document.createElement('div');
+            loadingIndicator.id = 'loading-indicator';
+            loadingIndicator.classList.add('flex', 'items-start', 'gap-3', 'bot-message');
+            loadingIndicator.innerHTML = `<div class="flex-shrink-0 h-10 w-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold">A</div><div class="bg-white p-4 rounded-r-lg rounded-bl-lg max-w-lg shadow flex items-center justify-center h-12"><div class="dot-flashing"></div></div>`;
+            chatContainer.querySelector('.space-y-6').appendChild(loadingIndicator);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        };
+
+        const hideLoadingIndicator = () => document.getElementById('loading-indicator')?.remove();
+
+        const getAIResponse = async (userMessage) => {
+            showLoadingIndicator();
+            sendMessageBtn.disabled = true;
+
+            const bot = defaultBots[activeBotId] || myBots.find(b => b.id === activeBotId);
+            const systemPrompt = bot.prompt;
+
+            const historyForAPI = chatHistory.map(entry => ({ role: entry.role === 'user' ? 'user' : 'model', parts: [{ text: entry.text }] }));
+
+            const payload = {
+                contents: [...historyForAPI, { role: "user", parts: [{ text: userMessage }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: { temperature: 0.7, topP: 1.0, maxOutputTokens: 512 }
+            };
+
+            try {
+                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!response.ok) throw new Error(`API Error: ${response.status}`);
+                const result = await response.json();
+                const botMessage = result.candidates?.[0]?.content?.parts?.[0]?.text || "I'm sorry, I couldn't generate a response.";
+                addMessageToUI('bot', botMessage);
+                chatHistory.push({ role: 'model', text: botMessage });
+            } catch (error) {
+                console.error("Failed to fetch AI response:", error);
+                let userFriendlyError = 'Oops! Something went wrong. Please check the console.';
+                if (apiKey === "YOUR_GOOGLE_AI_API_KEY_HERE" || apiKey === "") {
+                    userFriendlyError = 'It looks like your API key is missing. Please paste your Google AI API key into the `apiKey` variable in the script.';
+                } else if (error.message.includes('429')) {
+                     userFriendlyError = 'The API is receiving too many requests. Please wait a moment and try again.';
+                }
+                addMessageToUI('bot', userFriendlyError);
+            } finally {
+                hideLoadingIndicator();
+                sendMessageBtn.disabled = false;
+                userInput.focus();
+            }
+        };
+
+        const handleSendMessage = () => {
+            const message = userInput.value.trim();
+            if (message) {
+                addMessageToUI('user', message);
+                chatHistory.push({ role: 'user', text: message });
+                userInput.value = '';
+                getAIResponse(message);
+            }
+        };
+
+        const saveChatHistory = () => {
+            if(activeBotId) localStorage.setItem(`chatHistory_${activeBotId}`, JSON.stringify(chatHistory));
+        }
+        const loadChatHistory = () => {
+            const savedHistory = localStorage.getItem(`chatHistory_${activeBotId}`);
+            chatHistory = savedHistory ? JSON.parse(savedHistory) : [];
+            chatContainer.querySelector('.space-y-6').innerHTML = ''; // Clear UI before loading
+            if (chatHistory.length === 0) {
+                addMessageToUI('bot', "Hello! How can I help you today?");
+            } else {
+                chatHistory.forEach(msg => addMessageToUI(msg.role, msg.text));
+            }
+        };
+        const saveMyBots = () => localStorage.setItem('myBots', JSON.stringify(myBots));
+        const loadMyBots = () => myBots = JSON.parse(localStorage.getItem('myBots')) || [];
+
+        const constructSuperPrompt = (details) => {
+            return `You are an AI character. You must strictly adhere to the following persona in all of your responses. Do not break character under any circumstances.
+
+**Core Identity:**
+- **Name:** ${details.name}
+- **Age:** ${details.age}
+- **Occupation:** ${details.occupation}
+- **Educational Background:** ${details.education}
+
+**State of Being:**
+- **Current Mood:** ${details.mood}
+- **Health Condition:** ${details.health}
+
+**Personality & Behaviour:**
+- **Key Personality Trait:** ${details.personality}
+- **Typical Behaviour:** ${details.behaviour}
+
+Based on this persona, begin the conversation with the user. Your responses must reflect these characteristics at all times.`;
+        };
+
+        const saveNewBot = () => {
+            const name = botForm.name.value.trim();
+            if (!name) {
+                alert("Please provide a name for your bot.");
+                return;
+            }
+
+            const moodValue = botForm.mood.value === 'Other' ? botForm.moodOther.value.trim() : botForm.mood.value;
+
+            const botDetails = {
+                name: name,
+                age: botForm.age.value.trim(),
+                occupation: botForm.occupation.value.trim(),
+                education: botForm.education.value.trim(),
+                health: botForm.health.value,
+                personality: botForm.personality.value,
+                mood: moodValue,
+                behaviour: botForm.behaviour.value,
+            };
+
+            const superPrompt = constructSuperPrompt(botDetails);
+            
+            const newBot = { id: `custom_${Date.now()}`, name: botDetails.name, prompt: superPrompt };
+            myBots.push(newBot);
+            saveMyBots();
+            
+            // Clear form
+            Object.values(botForm).forEach(input => input.value = '');
+            botForm.health.value = 'Good'; // Reset select to default
+            botForm.mood.value = 'Happy';
+            botForm.moodOther.classList.add('hidden');
+
+
+            createBotModal.classList.add('hidden');
+            switchBot(newBot.id);
+        };
+        
+        const saveSimpleBot = () => {
+            const name = simpleBotNameInput.value.trim();
+            const prompt = simpleBotPromptInput.value.trim();
+            if (!name || !prompt) {
+                alert("Please provide both a name and instructions for your bot.");
+                return;
+            }
+            const newBot = { id: `custom_${Date.now()}`, name, prompt };
+            myBots.push(newBot);
+            saveMyBots();
+
+            simpleBotNameInput.value = '';
+            simpleBotPromptInput.value = '';
+
+            createSimpleBotModal.classList.add('hidden');
+            switchBot(newBot.id);
+        };
+        
+        const deleteBot = (botId) => {
+            if (confirm("Are you sure you want to delete this bot and all its conversations? This cannot be undone.")) {
+                myBots = myBots.filter(bot => bot.id !== botId);
+                saveMyBots();
+                localStorage.removeItem(`chatHistory_${botId}`);
+                if (activeBotId === botId) {
+                    switchBot(Object.keys(defaultBots)[0]);
+                } else {
+                    renderSidebar();
+                }
+            }
+        };
+
+        // --- Event Listeners ---
+        sendMessageBtn.addEventListener('click', handleSendMessage);
+        userInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleSendMessage(); });
+        
+        createNewBotBtn.addEventListener('click', () => createBotModal.classList.remove('hidden'));
+        cancelCreateBotBtn.addEventListener('click', () => createBotModal.classList.add('hidden'));
+        saveNewBotBtn.addEventListener('click', saveNewBot);
+        
+        createSimpleBotBtn.addEventListener('click', () => createSimpleBotModal.classList.remove('hidden'));
+        cancelSimpleBotBtn.addEventListener('click', () => createSimpleBotModal.classList.add('hidden'));
+        saveSimpleBotBtn.addEventListener('click', saveSimpleBot);
+        
+        document.querySelector('aside').addEventListener('click', (e) => {
+            const botLink = e.target.closest('.bot-link');
+            const deleteBtn = e.target.closest('.delete-bot-btn');
+            if (deleteBtn) { e.preventDefault(); e.stopPropagation(); deleteBot(deleteBtn.dataset.id); } 
+            else if (botLink) { e.preventDefault(); switchBot(botLink.dataset.id); }
+        });
+
+        botForm.mood.addEventListener('change', (e) => {
+            botForm.moodOther.classList.toggle('hidden', e.target.value !== 'Other');
+        });
+
+        // --- Initialization ---
+        window.addEventListener('load', () => {
+            populateSelect(botForm.mood, personaOptions.moods);
+            populateSelect(botForm.personality, personaOptions.personalities);
+            populateSelect(botForm.behaviour, personaOptions.behaviours);
+            loadMyBots();
+            switchBot(activeBotId);
+        });
+    </script>
+</body>
+</html>
+
